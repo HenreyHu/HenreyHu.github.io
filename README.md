@@ -21,7 +21,7 @@ meant to become their own repos, not part of this one).
 ## Before you publish — placeholders to replace
 
 - [ ] `index.html`, `projects/stretch.html`, `projects/wave-maze.html`: swap
-      every `YOUR-PROFILE` (sidebar social links, and the
+      every the LinkedIn slug (sidebar social links, and the
       "Repo" / "Full write-up on GitHub" links on each project) for your
       real ones — including once you've actually created the
       `stretch-writeup` and `wave-maze-writeup` repos from the `../repos/`
