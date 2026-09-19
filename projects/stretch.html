@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STRETCH — Henrey Hu</title>
+<meta name="description" content="STRETCH: a 2D platformer on a custom C++ engine. Enemy AI, save system and debug tooling built by Henrey Hu.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+
+<button id="theme-toggle" class="theme-toggle" aria-label="Toggle light and dark theme">
+  <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+  <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+</button>
+
+<header class="page-header">
+  <a href="../index.html#work" class="back-link">← Back to portfolio</a>
+</header>
+
+<main class="case-study">
+
+  <div class="case-hero">
+    <h1>STRETCH</h1>
+    <div class="case-meta">
+      <span>Programmer — AI &amp; UI Champion</span>
+      <span>Team of 8</span>
+      <span>Custom C++ Engine</span>
+      <span>Year 2</span>
+    </div>
+  </div>
+
+  <div class="media-frame placeholder">
+    <span>60–90s gameplay reel goes here</span>
+    <span>replace with &lt;video src="../assets/video/stretch-reel.mp4"&gt; — lead with your best 5 seconds</span>
+  </div>
+
+  <h2>Overview</h2>
+  <p>
+    STRETCH is a 2D platformer built by a team of eight on a fully custom C++ engine — no Unity, no
+    Unreal, engine code written by the team from the ground up. It was a stretch project: outside the
+    normal coursework scope, undertaken to work at a larger team size and on lower-level systems than
+    earlier modules required.
+  </p>
+
+  <div class="role-line">
+    Role: Programmer, AI &amp; UI Champion. I owned the enemy AI, the save/load system, checkpoints,
+    animation state handling, and the in-engine debug tooling used by the rest of the team. Art, audio
+    and level design were built by teammates.
+  </div>
+
+  <h2>What I built</h2>
+  <p>
+    Three systems made up most of my contribution: the enemy's decision-making, the mechanism that let
+    players (and the team, while testing) save and resume progress, and the tools that let the rest of
+    the team see what the game was doing at runtime without attaching a debugger.
+  </p>
+
+  <div class="deep-dive">
+    <h3>Enemy AI — finite state machine with directional detection</h3>
+    <div class="diagram-frame">
+      <img src="../assets/img/fsm-diagram.svg" alt="Enemy AI state diagram: Idle to Patrol on a timer, Patrol to Spot when the player enters the detection cone, Spot to Charge once line of sight is confirmed, with back-edges from Spot and Charge to Patrol">
+      <p class="diagram-caption">Four states, transitions driven by a directional detection check rather than raw distance.</p>
+    </div>
+    <p>
+      The enemy runs a four-state machine — <strong>Idle, Patrol, Spot, Charge</strong>. The detection
+      step isn't a simple radius check: it compares the player's position against the enemy's facing
+      direction and a field-of-view angle, so an enemy can be walked past from behind without noticing.
+      Losing sight during <strong>Spot</strong> or <strong>Charge</strong> drops the enemy back to
+      <strong>Patrol</strong> rather than resetting straight to <strong>Idle</strong>, so it keeps
+      searching near the player's last known position instead of forgetting instantly.
+    </p>
+    <p>
+      I chose an FSM over something heavier (behaviour trees, a full pathfinding-driven agent) because
+      the scope was a handful of clearly distinct behaviours with simple transition conditions — a
+      state machine kept it easy for the rest of the team to reason about and extend during production,
+      which mattered more here than generality.
+    </p>
+    <div class="code-block">
+      <pre><code>// Representative excerpt of the FSM update step — recreated for this writeup
+// pending confirmation from the program office on sharing original coursework source.
+void EnemyController::UpdateState(float dt) {
+    switch (currentState) {
+        case State::Idle:
+            if (idleTimer.Elapsed() > idleDuration) {
+                TransitionTo(State::Patrol);
+            }
+            break;
+
+        case State::Patrol:
+            FollowPatrolPath(dt);
+            if (CanSeePlayer()) {
+                TransitionTo(State::Spot);
+            }
+            break;
+
+        case State::Spot:
+            FaceTarget(lastKnownPlayerPos, dt);
+            if (!CanSeePlayer()) {
+                TransitionTo(State::Patrol);
+            } else if (spotTimer.Elapsed() > confirmDelay) {
+                TransitionTo(State::Charge);
+            }
+            break;
+
+        case State::Charge:
+            MoveToward(player-&gt;GetPosition(), chargeSpeed, dt);
+            if (!CanSeePlayer() || DistanceTo(player) &gt; giveUpRadius) {
+                TransitionTo(State::Patrol);
+            }
+            break;
+    }
+}
+
+bool EnemyController::CanSeePlayer() const {
+    glm::vec2 toPlayer = glm::normalize(player-&gt;GetPosition() - position);
+    float facingDot = glm::dot(facingDirection, toPlayer);
+    return facingDot &gt; cosf(glm::radians(fovHalfAngle))
+        && DistanceTo(player) &lt; detectionRange
+        && HasLineOfSight(player-&gt;GetPosition());
+}</code></pre>
+    </div>
+    <p class="code-note">Excerpt is a reconstruction for illustration — swap in the real implementation once source-sharing is cleared.</p>
+  </div>
+
+  <div class="deep-dive">
+    <h3>Save / load and checkpoints</h3>
+    <p>
+      Progress is serialized to disk on checkpoint trigger and on manual save, and restored on load —
+      player position, enemy states, collected items and level flags all round-trip through the same
+      serialization path. Checkpoints write asynchronously so hitting one mid-play doesn't cause a
+      frame hitch.
+    </p>
+    <div class="callout">
+      <p>
+        The harder part wasn't writing the data — it was deciding what counted as game state versus
+        what could be recomputed on load. Keeping that boundary explicit is what kept save files small
+        and made adding new saveable systems later a one-line registration rather than a rewrite.
+      </p>
+    </div>
+  </div>
+
+  <div class="deep-dive">
+    <h3>Debug tooling</h3>
+    <p>
+      Built an ImGui-based debug overlay the rest of the team used directly — live state inspection for
+      the enemy FSM (current state, timers, detection cone), a save-file inspector, and toggles for
+      common test scenarios. Having this in the team's hands, not just mine, cut down on "can you check
+      why the enemy is stuck" pings during production.
+    </p>
+  </div>
+
+  <h2>What I'd change</h2>
+  <p>
+    The FSM's transition conditions are hard-coded per state rather than data-driven, which was fine at
+    four states but would get unwieldy past six or seven — a small transition table would make the next
+    iteration easier to tune without recompiling. I'd also profile the line-of-sight check under load;
+    it wasn't a bottleneck with a handful of enemies on screen, but I never confirmed where it would
+    start to be one.
+  </p>
+
+  <div class="case-links">
+    <a href="https://github.com/HenreyHu/stretch-writeup" target="_blank" rel="noopener">Full write-up on GitHub →</a>
+    <a href="../index.html#work">Back to projects →</a>
+  </div>
+
+</main>
+
+<script src="../script.js"></script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wave Maze — Henrey Hu</title>
+<meta name="description" content="Wave Maze: a top-down maze game. Game state architecture, keycard system and file I/O built by Henrey Hu.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+
+<button id="theme-toggle" class="theme-toggle" aria-label="Toggle light and dark theme">
+  <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+  <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+</button>
+
+<header class="page-header">
+  <a href="../index.html#work" class="back-link">← Back to portfolio</a>
+</header>
+
+<main class="case-study">
+
+  <div class="case-hero">
+    <h1>Wave Maze</h1>
+    <div class="case-meta">
+      <span>Programmer</span>
+      <span>Year 1</span>
+      <span>C++</span>
+    </div>
+  </div>
+
+  <div class="media-frame placeholder">
+    <span>30–60s gameplay reel goes here</span>
+    <span>replace with &lt;video src="../assets/video/wave-maze-reel.mp4"&gt; — show the keycard gate and a menu flow</span>
+  </div>
+
+  <h2>Overview</h2>
+  <p>
+    Wave Maze is a top-down maze game built in the first year of the programme. Unlike STRETCH, the
+    scope here was to build the entire game's state architecture end to end — menus, progression,
+    persistence — rather than one specialised system inside a larger team.
+  </p>
+
+  <div class="role-line">
+    Role: Programmer. I built the full game state architecture: the menu flow, the keycard-gated
+    progression system, collision and spawn logic, and file I/O for saving and loading progress.
+  </div>
+
+  <h2>What I built</h2>
+  <p>
+    The game moves through a small number of top-level states — main menu, in-maze, paused, win/lose —
+    and each maze itself gates progress behind collectible keycards, so movement between areas depends
+    on what the player has picked up rather than just where they are standing.
+  </p>
+
+  <div class="deep-dive">
+    <h3>Game state architecture</h3>
+    <p>
+      A single state manager owns transitions between menu, gameplay and pause states, so input
+      handling, rendering and update logic each only run for the state that's actually active — pausing
+      the game doesn't require every system to individually check an <code>isPaused</code> flag. This
+      was the first time I'd structured a game this way rather than letting states leak into each
+      other, and it's the pattern I carried into STRETCH's larger system a year later.
+    </p>
+  </div>
+
+  <div class="deep-dive">
+    <h3>Keycard progression system</h3>
+    <p>
+      Doors and gates check the player's inventory against a required keycard ID before allowing
+      passage. Collision and spawn logic for keycards, doors and the player are handled through the
+      same spatial system, so adding a new gated area is a data change — placing an object and setting
+      its required key — rather than new code.
+    </p>
+  </div>
+
+  <div class="deep-dive">
+    <h3>File I/O and persistence</h3>
+    <p>
+      Save and load covers player position, collected keycards and maze progress, written to disk in a
+      simple flat format. It's a smaller-scope version of the same problem STRETCH's save system solved
+      later — deciding what counts as state worth persisting versus what the level itself already
+      encodes.
+    </p>
+  </div>
+
+  <h2>What I'd change</h2>
+  <p>
+    The save format was hand-rolled per project rather than built as something reusable — writing it
+    again from scratch for STRETCH a year later is what pushed me toward treating serialization as its
+    own small system rather than page-specific glue code.
+  </p>
+
+  <div class="case-links">
+    <a href="https://github.com/HenreyHu/wave-maze-writeup" target="_blank" rel="noopener">Full write-up on GitHub →</a>
+    <a href="../index.html#work">Back to projects →</a>
+  </div>
+
+</main>
+
+<script src="../script.js"></script>
+</body>
+</html>
