@@ -1,6 +1,6 @@
-# Henrey Hu - Portfolio
+Live site: <a href="https://henreyhu.github.io" target="_blank" rel="noopener">https://henreyhu.github.io</a>
 
-Live site: https://henreyhu.github.io
+# Henrey Hu - Portfolio
 
 Plain HTML/CSS/JS, no build step.
 The home page and both project case study pages (`projects/stretch.html`, `projects/wave-maze.html`) live in this repo.

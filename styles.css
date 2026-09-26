@@ -134,6 +134,8 @@ a { color: inherit; text-decoration: none; }
 }
 .side-link:hover { color: var(--accent); }
 .side-link svg { flex-shrink: 0; }
+.side-link.static { cursor: default; }
+.side-link.static:hover { color: var(--text-dim); }
 
 .resume-btn {
   display: flex;
