@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Wave Maze — Henrey Hu</title>
-<meta name="description" content="Wave Maze: a top-down maze game. Game state architecture, keycard system and file I/O built by Henrey Hu.">
+<title>WAVES — Henrey Hu</title>
+<meta name="description" content="WAVES: a top-down stealth maze game. Game state architecture, overlays, and the shared UI layer built by Henrey Hu.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -24,78 +24,86 @@
 <main class="case-study">
 
   <div class="case-hero">
-    <h1>Wave Maze</h1>
+    <h1>WAVES</h1>
     <div class="case-meta">
       <span>Programmer</span>
-      <span>Year 1</span>
+      <span>Team of 5</span>
       <span>C++</span>
+      <span>Year 1</span>
     </div>
   </div>
 
   <div class="media-frame placeholder">
     <span>30–60s gameplay reel goes here</span>
-    <span>replace with &lt;video src="../assets/video/wave-maze-reel.mp4"&gt; — show the keycard gate and a menu flow</span>
+    <span>replace with &lt;video src="../assets/video/waves-reel.mp4"&gt; — show a rock throw revealing the maze and the pause overlay</span>
   </div>
 
   <h2>Overview</h2>
   <p>
-    Wave Maze is a top-down maze game built in the first year of the programme. Unlike STRETCH, the
-    scope here was to build the entire game's state architecture end to end — menus, progression,
-    persistence — rather than one specialised system inside a larger team.
+    WAVES is a top-down stealth maze game built by a team of five in the first year of the programme,
+    on AlphaEngine, a 2D C engine provided by DigiPen. The player throws rocks that emit light and
+    sound waves, revealing the maze layout and luring enemies away, rather than seeing the whole level
+    at once.
   </p>
 
   <div class="role-line">
-    Role: Programmer. I built the full game state architecture: the menu flow, the keycard-gated
-    progression system, collision and spawn logic, and file I/O for saving and loading progress.
+    Role: Programmer. I built the game state architecture end to end, a shared state interface and a
+    manager every screen in the game runs through, then implemented the screens on top of it, covering
+    the menus, level select, three playable levels, and the pause, settings and exit overlays. I also
+    built the shared interface layer used across all of them for button input, text rendering and font
+    management. The wave mechanic, maze loading, player movement, and collision were built by
+    teammates.
   </div>
 
   <h2>What I built</h2>
-  <p>
-    The game moves through a small number of top-level states — main menu, in-maze, paused, win/lose —
-    and each maze itself gates progress behind collectible keycards, so movement between areas depends
-    on what the player has picked up rather than just where they are standing.
-  </p>
 
   <div class="deep-dive">
     <h3>Game state architecture</h3>
     <p>
-      A single state manager owns transitions between menu, gameplay and pause states, so input
-      handling, rendering and update logic each only run for the state that's actually active — pausing
-      the game doesn't require every system to individually check an <code>isPaused</code> flag. This
-      was the first time I'd structured a game this way rather than letting states leak into each
-      other, and it's the pattern I carried into STRETCH's larger system a year later.
+      Every screen in the game, splash, main menu, level select, instructions, the three levels, win,
+      lose, credits, implements the same small interface, load, initialize, update, draw, free, unload.
+      A single manager owns the active screen and tears down the previous one before switching, so
+      state never leaks between screens. Screens do not call into the manager to switch themselves,
+      instead they report what they want to transition to and the manager acts on it, which keeps the
+      manager as the one place that decides when a transition actually happens.
     </p>
   </div>
 
   <div class="deep-dive">
-    <h3>Keycard progression system</h3>
+    <h3>Overlays</h3>
     <p>
-      Doors and gates check the player's inventory against a required keycard ID before allowing
-      passage. Collision and spawn logic for keycards, doors and the player are handled through the
-      same spatial system, so adding a new gated area is a data change — placing an object and setting
-      its required key — rather than new code.
+      Pause, settings and exit are not separate states in the same sense as a level or a menu screen,
+      they are overlays that sit on top of whatever level is currently running, gating input and
+      drawing on top of it without tearing the level down and reloading it afterward. That distinction
+      is what keeps pausing cheap, resuming just means the overlay stops drawing and releasing input,
+      the level underneath was never unloaded in the first place.
     </p>
   </div>
 
   <div class="deep-dive">
-    <h3>File I/O and persistence</h3>
+    <h3>Shared UI and font layer</h3>
     <p>
-      Save and load covers player position, collected keycards and maze progress, written to disk in a
-      simple flat format. It's a smaller-scope version of the same problem STRETCH's save system solved
-      later — deciding what counts as state worth persisting versus what the level itself already
-      encodes.
+      Every screen's buttons run through the same hit testing code, which has to handle both world
+      space, used during gameplay, and normalized screen space, used in menus, since a button placed in
+      one space would test against the wrong region if checked with math meant for the other. Fonts are
+      loaded once and cached by name rather than reloaded per screen, and the wall and boundary
+      rendering for each maze uses a manually managed growable array rather than a fixed size buffer, so
+      a maze layout is not capped at a size chosen ahead of time.
     </p>
   </div>
 
   <h2>What I'd change</h2>
   <p>
-    The save format was hand-rolled per project rather than built as something reusable — writing it
-    again from scratch for STRETCH a year later is what pushed me toward treating serialization as its
-    own small system rather than page-specific glue code.
+    The state manager special cases the main menu state directly, using a cast to hand it a shared quit
+    flag, rather than passing shared data to every state through the same interface. It worked for a
+    project this size but every new state needing shared data would add another special case. The wall
+    array also reallocates on every single wall added rather than growing in batches, which is quadratic
+    over a full level load, a standard growable array with its size reserved up front from the maze
+    dimensions would be both faster and simpler.
   </p>
 
   <div class="case-links">
-    <a href="https://github.com/HenreyHu/Portfolio#-game-development" target="_blank" rel="noopener">See it on GitHub →</a>
+    <a href="https://github.com/HenreyHu/waves-writeup" target="_blank" rel="noopener">See the full write-up on GitHub →</a>
     <a href="../index.html#work">Back to projects →</a>
   </div>
 
